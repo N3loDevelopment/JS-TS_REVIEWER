@@ -64,6 +64,25 @@ export class FunctionHandler {
         return results;
     }
 
+    checkIfEvalUsage(code: string): {line: number, level: string, message: string}[] {
+        const results: {line: number, level: string, message: string}[] =
+        [];
+        const evalRegex = /\beval\s*\(/g;
+        const lines = code.split('\n');
+        for (let i = 0; i < lines.length; i++) {   
+            const line = lines[i].trim();
+            if (!line) continue;
+            if (evalRegex.test(line)) {
+                results.push({
+                    line: i + 1,
+                    level: "critical",
+                    message: `eval usage found: ${line}`
+                });
+            }
+        }
+        return results;
+    }
+
     async checkAll() {
         const code = await fileHandler.getFileContext();
         const logData: any = {};
@@ -79,10 +98,6 @@ export class FunctionHandler {
     }
 }
 
-(async () => {
-   const handler = new FunctionHandler();
-   await handler.checkAll();
-   log("All checks completed.");
-})();
+
 
 export const functionHandler = new FunctionHandler();
