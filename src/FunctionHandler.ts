@@ -1,5 +1,9 @@
-import { log } from "console";
-import { fileHandler } from "./FileHandler";
+import {
+    log
+} from "console";
+import {
+    fileHandler
+} from "./FileHandler";
 import * as fs from "fs";
 
 export class FunctionHandler {
@@ -27,8 +31,16 @@ export class FunctionHandler {
         }).join('\n');
     }
 
-    checkIfWithFixedValue(code: string): {line: number, level: string, message: string}[] {
-        const results: {line: number, level: string, message: string}[] = [];
+    checkIfWithFixedValue(code: string): {
+        line: number,
+        level: string,
+        message: string
+    } [] {
+        const results: {
+            line: number,
+            level: string,
+            message: string
+        } [] = [];
         const ifFixedValueRegex = /if\s*\(\s*([a-zA-Z_][\w]*)\s*([=!]=+)\s*(\d+|'.*?'|".*?")\s*\)/gi;
         const lines = code.split('\n');
         for (let i = 0; i < lines.length; i++) {
@@ -47,8 +59,16 @@ export class FunctionHandler {
         return results;
     }
 
-    checkIfWithoutCurlyBraces(code: string): {line: number, level: string, message: string}[] {
-        const results: {line: number, level: string, message: string}[] = [];
+    checkIfWithoutCurlyBraces(code: string): {
+        line: number,
+        level: string,
+        message: string
+    } [] {
+        const results: {
+            line: number,
+            level: string,
+            message: string
+        } [] = [];
         const lines = code.split('\n');
         const ifNoCurlyRegex = /^\s*if\s*\(.*\)\s*(?!\{)/;
         for (let i = 0; i < lines.length; i++) {
@@ -64,12 +84,19 @@ export class FunctionHandler {
         return results;
     }
 
-    checkIfEvalUsage(code: string): {line: number, level: string, message: string}[] {
-        const results: {line: number, level: string, message: string}[] =
-        [];
+    checkIfEvalUsage(code: string): {
+        line: number,
+        level: string,
+        message: string
+    } [] {
+        const results: {
+            line: number,
+            level: string,
+            message: string
+        } [] = [];
         const evalRegex = /\beval\s*\(/g;
         const lines = code.split('\n');
-        for (let i = 0; i < lines.length; i++) {   
+        for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
             if (!line) continue;
             if (evalRegex.test(line)) {
@@ -83,6 +110,7 @@ export class FunctionHandler {
         return results;
     }
 
+
     async checkAll() {
         const code = await fileHandler.getFileContext();
         const logData: any = {};
@@ -94,10 +122,21 @@ export class FunctionHandler {
 
         logData.ifWithoutCurlyBraces = this.checkIfWithoutCurlyBraces(code);
 
+        logData.evalUsage = this.checkIfEvalUsage(code);
+
         fileHandler.createLogFile("log.json", logData);
     }
 }
 
 
+(async () => {
+    const functionHandler = new FunctionHandler();
+    try {
+        await functionHandler.checkAll();
+        log("Code analysis completed successfully.");
+    } catch (error) {
+        log("Error during code analysis:", error);
+    }
+})();
 
 export const functionHandler = new FunctionHandler();
