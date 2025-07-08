@@ -1,4 +1,6 @@
-import {log} from "console";
+import {
+    log
+} from "console";
 import * as fs from "fs";
 import * as readline from 'readline';
 
@@ -16,30 +18,41 @@ class FileHandler {
     checkFilePathExists(): Promise < string > {
         return new Promise((resolve, reject) => {
 
-                rl.question('Enter the Filepath: ', (path) => {
-                    if (fs.existsSync(path)) {
-                        resolve(path);
-                    } else {
-                        reject(new Error("Path not found"));
-                    }
-                    rl.close();
-                });
+            rl.question('Enter the Filepath: ', (path) => {
+                if (fs.existsSync(path)) {
+                    resolve(path);
+                } else {
+                    reject(new Error("Path not found"));
+                }
+                rl.close();
+            });
         });
     }
 
-    async getFileContext(): Promise<string> {
-        try {
+    async getFileContext(): Promise < string > {
+        return new Promise(async (resolve, reject) => {
             const validPath = await this.checkFilePathExists();
             const fileContext = fs.readFileSync(validPath, {
                 encoding: 'utf8',
                 flag: 'r'
             });
-            log("File content: " + fileContext);
-            return fileContext;
-        } catch (err) {
-            log("Failed to get file content: " + err);
-            return "";
-        }
+            if (fileContext) {
+                resolve(fileContext);
+            } else {
+                reject(new Error("File is empty or could not be read"));
+            }
+        });
+    }
+}
+
+
+function test(){
+    let old = 0;
+    let lol = true
+    if(lol)
+        log("test")
+        if(old == 7){
+        log("test2");
     }
 }
 
