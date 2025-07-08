@@ -110,6 +110,73 @@ export class FunctionHandler {
         return results;
     }
 
+    checkIfVariableDeclaredButNotUsed(code: string): {
+        line: number,
+        level: string,
+        message: string
+    } [] {
+        const results: {
+            line: number,
+            level: string,
+            message: string
+        } [] = [];
+        if (!code || typeof code !== 'string') return results;
+
+        const lines = code.split('\n');
+        const declaredVariables = new Map < string,
+            {
+                line: number,
+                declaration: string
+            } > ();
+
+        const declarationRegex = /(?:let|const|var)\s+(\w+)(?:\s*=\s*([^;]+))?/g;
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+
+            let match;
+            while ((match = declarationRegex.exec(line)) !== null) {
+                const varName = match[1];
+                if (!varName.startsWith('_')) {
+                    declaredVariables.set(varName, {
+                        line: i + 1,
+                        declaration: line
+                    });
+                }
+            }
+        }
+
+        const usedVariables = new Set < string > ();
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+
+            if (line.match(/^\s*(let|const|var)\s+\w+/)) continue;
+
+            for (const [varName] of declaredVariables) {
+                const simpleUsageRegex = new RegExp(`\\b${varName}\\b`, 'g');
+                if (simpleUsageRegex.test(line)) {
+                    usedVariables.add(varName);
+                }
+            }
+        }
+
+        for (const [varName, info] of declaredVariables) {
+            if (!usedVariables.has(varName)) {
+                results.push({
+                    line: info.line,
+                    level: "warning",
+                    message: `Variable "${varName}" wurde deklariert aber nie verwendet: ${info.declaration}`
+                });
+            }
+        }
+
+        return results;
+    }
+
+
 
     async checkAll() {
         const code = await fileHandler.getFileContext();
@@ -121,6 +188,8 @@ export class FunctionHandler {
         logData.ifWithFixedValue = this.checkIfWithFixedValue(code);
 
         logData.ifWithoutCurlyBraces = this.checkIfWithoutCurlyBraces(code);
+
+        logData.variableDeclaredButNotUsed = this.checkIfVariableDeclaredButNotUsed(code);
 
         logData.evalUsage = this.checkIfEvalUsage(code);
 
