@@ -47,6 +47,7 @@ describe("FunctionHandler", () => {
         });
     });
 
+    //dont work rn - the entire
     describe("checkIfWithoutCurlyBraces", () => {
         it("findet if-Abfragen ohne geschweifte Klammern", () => {
             const code = `
