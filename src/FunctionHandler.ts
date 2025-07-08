@@ -75,9 +75,7 @@ class FunctionHandler {
 
         logData.ifWithoutCurlyBraces = this.checkIfWithoutCurlyBraces(code);
 
-        // muss noch in FileHandler gemacht werden, aber bin gerade zu faul dafür
-        fs.writeFileSync("log.json", JSON.stringify(logData, null, 2), "utf-8");
-        log("Alle Ergebnisse wurden in log.json gespeichert.");
+        fileHandler.createLogFile("log.json", logData);
     }
 }
 

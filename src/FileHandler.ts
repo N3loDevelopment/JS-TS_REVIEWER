@@ -43,6 +43,16 @@ class FileHandler {
             }
         });
     }
+
+    createLogFile(fileName: string, data: any): void {
+        fs.writeFile(fileName, JSON.stringify(data, null, 2), (err) => {
+            if (err) {
+                log("Error writing to file:", err);
+            } else {
+                log(`Log file ${fileName} created successfully.`);
+            }
+        });
+    }
 }
 
 
