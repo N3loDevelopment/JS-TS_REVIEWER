@@ -1,1 +1,2 @@
-import "./readFile"
+import "./FileHandler"
+import "./FunctionHandler"
