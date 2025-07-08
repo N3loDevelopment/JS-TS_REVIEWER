@@ -56,12 +56,14 @@ class FileHandler {
 }
 
 
-function test(){
+function test() {
     let old = 0;
     let lol = true
-    if(lol)
-        log("test")
-        if(old == 7){
+    var tessf;
+
+    if (lol)
+        log(eval("2+2"));
+    if (old == 7) {
         log("test2");
     }
 }
