@@ -3,6 +3,10 @@
     "fs": "^0.0.1-security"
   },
   "devDependencies": {
-    "@types/node": "^24.0.10"
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.0.10",
+    "jest": "^30.0.4",
+    "ts-jest": "^29.4.0",
+    "vitest": "^3.2.4"
   }
 }
