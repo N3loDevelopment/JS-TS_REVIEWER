@@ -2,7 +2,7 @@ import { log } from "console";
 import { fileHandler } from "./FileHandler";
 import * as fs from "fs";
 
-class FunctionHandler {
+export class FunctionHandler {
     constructor() {}
 
     extractFunctionsFromContext(context: string): string {
@@ -29,7 +29,7 @@ class FunctionHandler {
 
     checkIfWithFixedValue(code: string): {line: number, level: string, message: string}[] {
         const results: {line: number, level: string, message: string}[] = [];
-        const ifFixedValueRegex = /if\s*\(\s*([a-zA-Z_][\w]*)\s*([=!]=+)\s*(\d+|'.*?'|".*?")\s*\)/g;
+        const ifFixedValueRegex = /if\s*\(\s*([a-zA-Z_][\w]*)\s*([=!]=+)\s*(\d+|'.*?'|".*?")\s*\)/gi;
         const lines = code.split('\n');
         for (let i = 0; i < lines.length; i++) {
             let match;
@@ -84,3 +84,5 @@ class FunctionHandler {
    await handler.checkAll();
    log("All checks completed.");
 })();
+
+export const functionHandler = new FunctionHandler();
