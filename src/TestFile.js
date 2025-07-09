@@ -7,4 +7,4 @@ function test() {
     if (old == 7) {
         log("test2");
     }
-}
+} 
