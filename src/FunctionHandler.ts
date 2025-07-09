@@ -5,6 +5,7 @@ import {
     fileHandler
 } from "./FileHandler";
 import * as fs from "fs";
+import { CodeIssue, SeverityLevel, CodeAnalyzerResult } from "./types/CodeReview";
 
 export class FunctionHandler {
     constructor() {}
