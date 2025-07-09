@@ -1,212 +1,146 @@
-import {
-    log
-} from "console";
-import {
-    fileHandler
-} from "./FileHandler";
+import { log } from "console";
+import { fileHandler } from "./FileHandler";
 import * as fs from "fs";
 import { CodeIssue, SeverityLevel, CodeAnalyzerResult } from "./types/CodeReview";
 
 export class FunctionHandler {
+    private readonly SEVERITY = {
+        CRITICAL: 'critical' as SeverityLevel,
+        WARNING: 'warning' as SeverityLevel,
+        INFO: 'info' as SeverityLevel
+    };
+
+    private readonly RULES = {
+        NO_FIXED_VALUES: 'no-fixed-if-values',
+        CURLY_BRACES: 'curly-braces-required',
+        NO_EVAL: 'no-eval',
+        NO_UNUSED_VARS: 'no-unused-vars'
+    };
+
     constructor() {}
 
-    extractFunctionsFromContext(context: string): string {
+
+    private extractFunctions(context: string): string[] {
         const functionRegex = /function\s+(\w+)\s*\(([^)]*)\)\s*{([\s\S]*?)}/g;
-        const functions = [];
+        const functions: Array<{name: string, parameters: string[], body: string}> = [];
+        
         let match;
         while ((match = functionRegex.exec(context)) !== null) {
-            const functionName = match[1];
-            const params = match[2].split(',').map(param => param.trim());
-            const body = match[3].trim();
             functions.push({
-                name: functionName,
-                parameters: params,
-                body: body
+                name: match[1],
+                parameters: match[2].split(',').map(param => param.trim()),
+                body: match[3].trim()
             });
         }
+
         if (functions.length === 0) {
-            return "no functions found in the file";
+            return ["no functions found in the file"];
         }
-        return functions.map(func => {
-            return `Function Name: ${func.name}, Parameters: [${func.parameters.join(', ')}], Body: ${func.body}`;
-        }).join('\n');
+
+        return functions.map(func => 
+            `Function Name: ${func.name}, Parameters: [${func.parameters.join(', ')}], Body: ${func.body}`
+        );
     }
 
-    checkIfWithFixedValue(code: string): {
-        line: number,
-        level: string,
-        message: string
-    } [] {
-        const results: {
-            line: number,
-            level: string,
-            message: string
-        } [] = [];
+    private checkFixedValues(code: string): CodeIssue[] {
+        const results: CodeIssue[] = [];
         const ifFixedValueRegex = /if\s*\(\s*([a-zA-Z_][\w]*)\s*([=!]=+)\s*(\d+|'.*?'|".*?")\s*\)/gi;
-        const lines = code.split('\n');
-        for (let i = 0; i < lines.length; i++) {
+        
+        const lines = this.getCodeLines(code);
+        lines.forEach((line, index) => {
             let match;
-            while ((match = ifFixedValueRegex.exec(lines[i])) !== null) {
-                const variable = match[1];
-                const operator = match[2];
-                const value = match[3];
+            while ((match = ifFixedValueRegex.exec(line)) !== null) {
                 results.push({
-                    line: i + 1,
-                    level: "critical",
-                    message: `find if statement with fixed value: if(${variable} ${operator} ${value})`
+                    line: index + 1,
+                    level: this.SEVERITY.CRITICAL,
+                    message: `Fixed value in if-statement: if(${match[1]} ${match[2]} ${match[3]})`,
+                    rule: this.RULES.NO_FIXED_VALUES
                 });
             }
-        }
+        });
+
         return results;
     }
 
-    checkIfWithoutCurlyBraces(code: string): {
-        line: number,
-        level: string,
-        message: string
-    } [] {
-        const results: {
-            line: number,
-            level: string,
-            message: string
-        } [] = [];
-        const lines = code.split('\n');
+    private checkCurlyBraces(code: string): CodeIssue[] {
+        const results: CodeIssue[] = [];
         const ifNoCurlyRegex = /^\s*if\s*\(.*\)\s*(?!\{)/;
-        for (let i = 0; i < lines.length; i++) {
-            const match = lines[i].match(/^\s*if\s*\(.*\)\s*({)?/);
+        
+        const lines = this.getCodeLines(code);
+        lines.forEach((line, index) => {
+            const match = line.match(/^\s*if\s*\(.*\)\s*({)?/);
             if (match && !match[1]) {
                 results.push({
-                    line: i + 1,
-                    level: "critical",
-                    message: `if statement without curly braces: ${lines[i].trim()}`
+                    line: index + 1,
+                    level: this.SEVERITY.CRITICAL,
+                    message: `Missing curly braces: ${line.trim()}`,
+                    rule: this.RULES.CURLY_BRACES
                 });
             }
-        }
+        });
+
         return results;
     }
 
-    checkIfEvalUsage(code: string): {
-        line: number,
-        level: string,
-        message: string
-    } [] {
-        const results: {
-            line: number,
-            level: string,
-            message: string
-        } [] = [];
+
+    
+    private checkEvalUsage(code: string): CodeIssue[] {
+        const results: CodeIssue[] = [];
         const evalRegex = /\beval\s*\(/g;
-        const lines = code.split('\n');
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i].trim();
-            if (!line) continue;
+        
+        const lines = this.getCodeLines(code);
+        lines.forEach((line, index) => {
             if (evalRegex.test(line)) {
                 results.push({
-                    line: i + 1,
-                    level: "critical",
-                    message: `eval usage found: ${line}`
+                    line: index + 1,
+                    level: this.SEVERITY.CRITICAL,
+                    message: `Eval usage detected: ${line.trim()}`,
+                    rule: this.RULES.NO_EVAL
                 });
             }
-        }
-        return results;
-    }
-
-    checkIfVariableDeclaredButNotUsed(code: string): {
-        line: number,
-        level: string,
-        message: string
-    } [] {
-        const results: {
-            line: number,
-            level: string,
-            message: string
-        } [] = [];
-        if (!code || typeof code !== 'string') return results;
-
-        const lines = code.split('\n');
-        const declaredVariables = new Map < string,
-            {
-                line: number,
-                declaration: string
-            } > ();
-
-        const declarationRegex = /(?:let|const|var)\s+(\w+)(?:\s*=\s*([^;]+))?/g;
-
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i].trim();
-            if (!line) continue;
-
-            let match;
-            while ((match = declarationRegex.exec(line)) !== null) {
-                const varName = match[1];
-                if (!varName.startsWith('_')) {
-                    declaredVariables.set(varName, {
-                        line: i + 1,
-                        declaration: line
-                    });
-                }
-            }
-        }
-
-        const usedVariables = new Set < string > ();
-
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i].trim();
-            if (!line) continue;
-
-            if (line.match(/^\s*(let|const|var)\s+\w+/)) continue;
-
-            for (const [varName] of declaredVariables) {
-                const simpleUsageRegex = new RegExp(`\\b${varName}\\b`, 'g');
-                if (simpleUsageRegex.test(line)) {
-                    usedVariables.add(varName);
-                }
-            }
-        }
-
-        for (const [varName, info] of declaredVariables) {
-            if (!usedVariables.has(varName)) {
-                results.push({
-                    line: info.line,
-                    level: "warning",
-                    message: `Variable "${varName}" wurde deklariert aber nie verwendet: ${info.declaration}`
-                });
-            }
-        }
+        });
 
         return results;
     }
 
+    
+    private getCodeLines(code: string): string[] {
+        return code.split('\n').map(line => line.trim());
+    }
 
+    
+    public async analyze(): Promise<CodeAnalyzerResult> {
+        try {
+            const code = await fileHandler.getFileContext();
+            
+            const result: CodeAnalyzerResult = {
+                functions: this.extractFunctions(code),
+                ifWithFixedValue: this.checkFixedValues(code),
+                ifWithoutCurlyBraces: this.checkCurlyBraces(code),
+                evalUsage: this.checkEvalUsage(code),
+                variableDeclaredButNotUsed: [] // TODO: Implement this check
+            };
 
-    async checkAll() {
-        const code = await fileHandler.getFileContext();
-        const logData: any = {};
-
-        const functionsResult = this.extractFunctionsFromContext(code);
-        logData.functions = functionsResult;
-
-        logData.ifWithFixedValue = this.checkIfWithFixedValue(code);
-
-        logData.ifWithoutCurlyBraces = this.checkIfWithoutCurlyBraces(code);
-
-        logData.variableDeclaredButNotUsed = this.checkIfVariableDeclaredButNotUsed(code);
-
-        logData.evalUsage = this.checkIfEvalUsage(code);
-
-        fileHandler.createLogFile("log.json", logData);
+            await fileHandler.createLogFile("log.json", result);
+            log("Code analysis completed successfully.");
+            
+            return result;
+        } catch (error) {
+            log("Error during code analysis:", error);
+            throw error;
+        }
     }
 }
 
-
-(async () => {
-    const functionHandler = new FunctionHandler();
-    try {
-        await functionHandler.checkAll();
-        log("Code analysis completed successfully.");
-    } catch (error) {
-        log("Error during code analysis:", error);
-    }
-})();
-
 export const functionHandler = new FunctionHandler();
+
+if (require.main === module) {
+    (async () => {
+        try {
+            await functionHandler.analyze();
+        } catch (error) {
+            log("Error running analysis:", error);
+            process.exit(1);
+        }
+    })();
+}
