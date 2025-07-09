@@ -8,5 +8,5 @@
     "skipLibCheck": true,
     "outDir": "./compiled"
   },
-  "include": ["src"]
+  "include": ["src", "compiled/tests"]
 }

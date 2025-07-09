@@ -1,4 +1,4 @@
-import { fileHandler } from '../FileHandler';
+import { fileHandler } from '../compiled/FileHandler';
 import * as fs from 'fs';
 import * as readline from 'readline';
 
